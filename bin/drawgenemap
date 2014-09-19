@@ -1,0 +1,190 @@
+#!/usr/bin/perl -w
+
+use warnings;
+use strict;
+use Getopt::Long;
+use Bio::Perl;
+
+# just for testing
+# ... if installed via distro
+# the script will be put
+# in /usr/local/bin
+use lib 'html/cgi-bin/';
+
+use GeneMap::Plastome;
+use GeneMap::Plastome::ToolBox;
+use GeneMap::Chondriome;
+use GeneMap::Linear;
+use GeneMap::Default;
+ 
+my $seqobj;
+
+my $file;
+my $accnum;
+my $outputType = "jpg";
+my $outputPath = "out";
+my $density = "72x72";
+my $fixedsize = 1200;
+my $scale;
+my $zoomregion;
+my $tidy;
+my $help;
+my $forcecircular;
+my $forcelinear;
+my $configfile;
+my $verbose;
+
+my $helpMessage = "\n
+drawgenemap - create graphical maps of GenBank data
+----------------------------------------------------
+
+Usage: drawgenemap [--file test.gb | --accnum XYZ123] --format JPG --outfile=out.jpg
+
+Options:
+
+--infile\tinput file name. Has to be a valid GenBank format file
+--accnum\taccession number of a GenBank entry. Requires an internet connection for download
+--format\tdesired output format [JPG, TIF, GIF, PNG, PS]
+--outfile\tpath to output file
+--density\tdensity [dpi] of graphical output
+--zoomregion\ttruncates the map to show only the specified region.
+\t\tThe region has to be specified in the format [start..end] e.g. 100..2000
+\t\tThis option is only valid for linear maps. When a circular sequence is
+\t\tpassed as input it will automatically be drawn as a zoomed linear map.
+--tidy\t\tIf set will clean up names and common annotation mistakes
+--fixedsize\tdefine a fixed width (in px) for the linear output graph
+--scale\t\tdefine a scale for the linear output graph. Format is bp:px [100:1]
+--force_circular and --force_linear can be used to override the corresponding 
+\t\tproperty in the input GenBank entry.
+--useconfig\tuse the specified configuration file
+
+";
+
+my $result = GetOptions ( 	"infile=s"        => \$file,
+					 		"accnum=s"  	=> \$accnum,
+					 		"format=s"      => \$outputType,
+					 		"outfile=s"  	=> \$outputPath,
+					 		"density=s"		=> \$density,
+					 		"fixedsize=s"   => \$fixedsize,
+					 		"scale=s"		=> \$scale,
+					 		"tidy"			=> \$tidy,
+					 		"zoomregion=s"	=> \$zoomregion,
+					 		"force_circular"=> \$forcecircular,
+							"force_linear"	=> \$forcelinear,
+							"useconfig=s"	=> \$configfile,
+							"verbose"		=> \$verbose,
+					 		"help"			=> \$help);
+					 		
+if ( ($help) || (!defined($file) && !defined($accnum)) ){
+	print $helpMessage;
+	exit(0);
+}
+
+if (!defined($file) && !defined($accnum) ) {
+	print "You have to supply an input file\nor an accession number\n";
+	exit(1);
+}
+
+if (defined($file) && defined($accnum) ) {
+	print "Please supply a file or an accession number\nnot both.\n";
+	exit(1);
+}
+
+if (defined($file)) {
+	# read seq from file
+	$seqobj = read_sequence($file);
+} else {
+	# fetch entry from GenBank
+	$seqobj = get_sequence('genbank',uc($accnum));
+}
+
+if (defined($scale)) {
+	my ($bp, $px) = split /:/, $scale;
+	print "scale: $bp base pairs per $px pixel(s)\n" if ($verbose);
+	print "output width set to ".abs($seqobj->length() / ($bp / $px))."px\n" if ($verbose);
+	$fixedsize = ($seqobj->length() / ($bp / $px));
+}
+
+if ( ( ( $seqobj->is_circular()) || ($forcecircular) ) && !$forcelinear ) {
+	#print "CIRC\n";
+	
+	if (defined($zoomregion)) {
+		print "creating linear map zooming into aregion of a circular molecule\n" if ($verbose);		
+		draw_linear_map();
+		exit(0);
+	}
+	draw_circular_map();
+} elsif ( !($seqobj->is_circular()) || ($forcelinear) ) {
+	print "creating linear map\n" if ($verbose);
+	draw_linear_map();
+}
+
+sub draw_circular_map {
+	print "creating circular map\n" if ($verbose);
+	my $map;
+	if (defined($file)) {
+		# read seq from file
+		$map = GeneMap::Plastome->new (file	=>	$file);
+	} else {
+		# fetch entry from GenBank
+		$map = GeneMap::Plastome->new (accnum	=>	$accnum);
+	}
+	
+	if (defined($configfile)) {
+		print "using custom configuration file: $configfile\n" if ($verbose);
+		$map->readDrawableFeatures(file => $configfile);
+	}
+	
+	$map->setTidy(1) unless (!$tidy);
+	$map->createMap(	outputfile	=> $outputPath,
+						type 		=> $outputType,
+						density		=> $density);
+	
+	
+}
+
+sub draw_linear_map {
+	print "creating linear map\n" if ($verbose);
+	my $map;
+	if (defined($file)) {
+		# read seq from file
+		$map = GeneMap::Linear->new (file	=>	$file,
+									 Xsize 	=> 	$fixedsize);
+	} else {
+		# fetch entry from GenBank
+		$map = GeneMap::Linear->new (accnum	=>	$accnum,
+									 Xsize 	=> 	$fixedsize);
+	}
+	
+	if (defined($zoomregion)) {
+		print "creating linear map zooming into a region of a linear molecule\n" if ($verbose);
+		my ($start, $end) = split /\.\./, $zoomregion;
+		print "zooming into region: $start..$end\n" if ($verbose);
+		my $trunc_seq_length = abs($end - $start);
+		# recalculate the fixedsize according to the
+		# desired scaling - based on the truncated seq!
+		if (defined($scale)) {
+			my ($bp, $px) = split /:/, $scale;
+			print "BP:$bp\tPX:$px\n";
+			print "new fixedsize zoomed: ".($trunc_seq_length / ($bp / $px))."\n";
+			$map->setXSize($trunc_seq_length / ($bp / $px));
+		}
+		#
+		
+		$map->setZoomRange(	start	=> $start,
+							end		=> $end);
+							
+	}
+	
+	if (defined($configfile)) {
+		print "using custom configuration file: $configfile\n" if ($verbose);
+		$map->readDrawableFeatures(file => $configfile);
+	}
+	
+	$map->setTidy(1) unless (!$tidy);
+	$map->createMap(	outputfile	=> $outputPath,
+						type 		=> $outputType,
+						density		=> $density);
+}					 		
+					 		
+					 		

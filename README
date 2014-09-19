@@ -1,0 +1,22 @@
+Installation
+============
+
+To install the package, on a command line type:
+
+perl Makefile.PL
+make
+make test
+make install
+
+If you are on a windows box you should use 'nmake' rather than 'make'.
+The package uses quite some public modules so you might have to install
+them either using the CPAN shell or by downloading them manually.
+
+irscan
+======
+
+In addition to the perl modules, the 'findIRborders' method of 
+GeneMap::Plastome requires the irscan tool to be installed in your 
+path. The package contains compiled binaries for linux_x86, Mac OS X (PPC)
+and Windows. If you are running a different OS / architecture you'll have
+to compile the source code on your machine.

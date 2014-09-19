@@ -1,0 +1,25 @@
+These are the sources for the small irscan tool 
+it is written in D so you'll have to install the
+D compiler and libraries to be able to compile it.
+
+You can get them here: 
+http://www.digitalmars.com/d/
+
+for linux and windows
+
+and here:
+http://gdcmac.sourceforge.net/
+
+for Mac OS X.
+
+to compile irscan type
+dmd irscan.d getopt.d bio/*.d or
+gdmd irscan.d getopt.d bio/*.d (Mac)
+
+there's no guarantee that this software will
+give you sensible results on all sequences you
+provide (it has worked with all seqs i fed in
+so far, though). Input sequences may be in 
+FASTA, GenBank or plain sequence format.
+
+enjoy.

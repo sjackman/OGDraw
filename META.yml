@@ -1,0 +1,20 @@
+# http://module-build.sourceforge.net/META-spec.html
+#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
+name:         GeneMap
+version:      1.1.1
+version_from: lib/GeneMap/Plastome.pm
+installdirs:  site
+requires:
+    Bio::Perl:                     0
+    Bio::Restriction::Analysis:    0
+    Bio::Root::Root:               0
+    Bio::SeqFeature::Generic:      0
+    Bio::SeqIO:                    0
+    Image::Magick:                 0
+    PostScript::Simple:            0
+    Test::Simple:                  0.44
+    XML::Generator:                0
+    XML::Simple:                   0
+
+distribution_type: module
+generated_by: ExtUtils::MakeMaker version 6.30
