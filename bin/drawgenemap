@@ -31,6 +31,8 @@ my $tidy;
 my $help;
 my $forcecircular;
 my $forcelinear;
+my $irscan;
+my $ircoord;
 my $configfile;
 my $verbose;
 
@@ -57,7 +59,10 @@ Options:
 --force_circular and --force_linear can be used to override the corresponding 
 \t\tproperty in the input GenBank entry.
 --useconfig\tuse the specified configuration file
-
+--irscan\tUse the utility 'irscan' to find the inverted repeats.
+--ircoord\tSpecify the coordinates of the inverted repeats.
+\t\tThe format is four numbers separated by semicolons.
+\t\te.g. --ircoord='1;1000;10000;11000'
 ";
 
 my $result = GetOptions ( 	"infile=s"        => \$file,
@@ -72,6 +77,8 @@ my $result = GetOptions ( 	"infile=s"        => \$file,
 					 		"force_circular"=> \$forcecircular,
 							"force_linear"	=> \$forcelinear,
 							"useconfig=s"	=> \$configfile,
+							"irscan"		=> \$irscan,
+							"ircoord=s"		=> \$ircoord,
 							"verbose"		=> \$verbose,
 					 		"help"			=> \$help);
 					 		
@@ -134,7 +141,17 @@ sub draw_circular_map {
 		print "using custom configuration file: $configfile\n" if ($verbose);
 		$map->readDrawableFeatures(file => $configfile);
 	}
-	
+
+    # Set the coordinates of the inverted repeats.
+	if (defined($irscan)) {
+	    # Find the inverted repeats using the utility irscan.
+		$map->findIRborders();
+	} elsif (defined($ircoord)) {
+		my ($irastart, $iraend, $irbstart, $irbend) = split ';', $ircoord;
+		$map->setIRA($irastart, $iraend);
+		$map->setIRB($irbstart, $irbend);
+	}
+
 	$map->setTidy(1) unless (!$tidy);
 	$map->createMap(	outputfile	=> $outputPath,
 						type 		=> $outputType,
