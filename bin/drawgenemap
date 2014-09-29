@@ -31,6 +31,7 @@ my $tidy;
 my $help;
 my $forcecircular;
 my $forcelinear;
+my $gc;
 my $irscan;
 my $ircoord;
 my $configfile;
@@ -59,6 +60,7 @@ Options:
 --force_circular and --force_linear can be used to override the corresponding 
 \t\tproperty in the input GenBank entry.
 --useconfig\tuse the specified configuration file
+--gc\tinclude a %GC graph in the map.
 --irscan\tUse the utility 'irscan' to find the inverted repeats.
 --ircoord\tSpecify the coordinates of the inverted repeats.
 \t\tThe format is four numbers separated by semicolons.
@@ -77,6 +79,7 @@ my $result = GetOptions ( 	"infile=s"        => \$file,
 					 		"force_circular"=> \$forcecircular,
 							"force_linear"	=> \$forcelinear,
 							"useconfig=s"	=> \$configfile,
+							"gc"		=> \$gc,
 							"irscan"		=> \$irscan,
 							"ircoord=s"		=> \$ircoord,
 							"verbose"		=> \$verbose,
@@ -131,10 +134,10 @@ sub draw_circular_map {
 	my $map;
 	if (defined($file)) {
 		# read seq from file
-		$map = GeneMap::Plastome->new (file	=>	$file);
+		$map = GeneMap::Plastome->new (file	=>	$file, gc_cont => $gc);
 	} else {
 		# fetch entry from GenBank
-		$map = GeneMap::Plastome->new (accnum	=>	$accnum);
+		$map = GeneMap::Plastome->new (accnum	=>	$accnum, gc_cont => $gc);
 	}
 	
 	if (defined($configfile)) {
